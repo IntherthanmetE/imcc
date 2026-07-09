@@ -1,35 +1,28 @@
-# 🔮 imcc (Ultimate Multi-Language Compiler & Interpreter Router)
-
-ระบบจัดการและรันภาษาโปรแกรมมิ่งแบบ All-in-One ประสิทธิภาพสูง พัฒนาด้วยภาษา Rust ถูกออกแบบมาเพื่อคัดแยกสายการทำงานอย่างเป็นระเบียบและแม่นยำสูงสุด ด้วยสถาปัตยกรรมระดับ Quantum ที่แยกฝั่ง "คอมไพล์รัน" และ "ปล่อยรันสด" ออกจากกันอย่างชัดเจน
-
----
-
-## 🛠️ โครงสร้างการทำงานภายใน (Core Architecture)
-
-ระบบทำการตรวจจับนามสกุลไฟล์โดยอัตโนมัติ และสลับโหมดการทำงานผ่านระบบ Pattern Matching ที่ปลอดภัยและไม่มีวันทำงานตีกัน:
-
-### 📦 1. ฝั่งต้องคอมไพล์ (Compile to Binary/Bytecode)
-- **C** (`.c`)
-- **C++** (`.cpp`, `.cc`, `.cxx`)
-- **Go** (`.go`)
-- **Rust** (`.rs`)
-- **Java** (`.java`)
-- **C#** (`.cs`)
-- **Swift** (`.swift`)
-- **Kotlin** (`.kt`, `.kts`)
-
-### ⚡ 2. ฝั่งปล่อยรันสด (Interpreter / Scripting)
-- **Python** (`.py`, `.pyw`)
-- **JavaScript** (`.js`, `.mjs`)
-- **TypeScript** (`.ts`)
-- **Lua** (`.lua`)
-- **Ruby** (`.rb`)
-- **PHP** (`.php`)
+# imcc
+###  Just a Compiler
 
 ---
 
-## 🚀 การติดตั้งและใช้งาน (Installation & Usage)
+> [!NOTE]
+> ### Core Architecture Overview
+> This core system automatically intercepts file extensions to seamlessly route files into their optimized pipelines, ensuring zero conflict between binary execution and dynamic interpretation.
 
-### การติดตั้งแบบรวดเร็วอัตโนมัติ
+---
+
+## Technical Routing Matrix
+
+| Execution Model | Supported Language / Extensions |
+| :--- | :--- |
+| **AOT Compilation** <br> *(Ahead-Of-Time)* | `c` / `cpp` / `cc` / `cxx` / `go` / `rs` / `java` / `cs` / `swift` / `kt` / `kts` |
+| **Dynamic Interpretation** <br> *(JIT / VM Runtime)* | `py` / `pyw` / `js` / `mjs` / `ts` / `lua` / `rb` / `php` |
+
+---
+
+## Installation & Deployment
+
+> [!IMPORTANT]
+> Make sure your cargo environment is up to date before launching the installation script.
+
+Run the automated script to build and link the binary directly into your path environment:
 ```bash
 ./install.sh
