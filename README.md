@@ -1,4 +1,4 @@
-# imccc
+# imcc
 # Just a Compiler
 
 ---
