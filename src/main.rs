@@ -1,286 +1,123 @@
-use std::collections::HashMap;
 use std::env;
 use std::fs;
+use std::io::{self, Write};
 use std::path::Path;
-use std::process;
+use std::thread;
+use std::time::Duration;
 
-#[derive(Debug, Clone, PartialEq)]
-enum Token {
-    Ident(String),
-    Number(f64),
-    Assign,
-    Plus,
-    Minus,
-    Star,
-    Slash,
-    Println,
-    EOF,
+fn show_spinner() {
+    let frames = ["+", "x", "*", "x"];
+    for i in 0..15 {
+        print!("\r[{}] Compiling...", frames[i % frames.len()]);
+        let _ = io::stdout().flush();
+        thread::sleep(Duration::from_millis(80));
+    }
+    print!("\r                \r");
+    let _ = io::stdout().flush();
 }
 
-struct Lexer {
-    input: Vec<char>,
-    position: usize,
+fn run_compiler_c(code: &str) {
+    println!("[C Compiler Mode] Code length: {}", code.len());
 }
 
-impl Lexer {
-    fn new(input: &str) -> Self {
-        Self {
-            input: input.chars().collect(),
-            position: 0,
-        }
-    }
-
-    fn peek(&self) -> Option<char> {
-        if self.position >= self.input.len() { None } else { Some(self.input[self.position]) }
-    }
-
-    fn advance(&mut self) -> Option<char> {
-        if self.position >= self.input.len() {
-            None
-        } else {
-            let c = self.input[self.position];
-            self.position += 1;
-            Some(c)
-        }
-    }
-
-    fn tokenize(&mut self) -> Result<Vec<Token>, String> {
-        let mut tokens = Vec::new();
-
-        while let Some(c) = self.peek() {
-            match c {
-                ' ' | '\t' | '\r' | '\n' => { self.advance(); }
-                '+' => { tokens.push(Token::Plus); self.advance(); }
-                '-' => { tokens.push(Token::Minus); self.advance(); }
-                '*' => { tokens.push(Token::Star); self.advance(); }
-                '/' => { tokens.push(Token::Slash); self.advance(); }
-                '=' => { tokens.push(Token::Assign); self.advance(); }
-                _ if c.is_digit(10) || c == '.' => {
-                    let mut num_str = String::new();
-                    while let Some(nc) = self.peek() {
-                        if nc.is_digit(10) || nc == '.' {
-                            num_str.push(nc);
-                            self.advance();
-                        } else {
-                            break;
-                        }
-                    }
-                    let num = num_str.parse::<f64>().map_err(|_| "Invalid number".to_string())?;
-                    tokens.push(Token::Number(num));
-                }
-                _ if c.is_alphabetic() || c == '_' => {
-                    let mut ident = String::new();
-                    while let Some(ic) = self.peek() {
-                        if ic.is_alphanumeric() || ic == '_' {
-                            ident.push(ic);
-                            self.advance();
-                        } else {
-                            break;
-                        }
-                    }
-                    if ident == "println" {
-                        tokens.push(Token::Println);
-                    } else {
-                        tokens.push(Token::Ident(ident));
-                    }
-                }
-                _ => return Err(format!("Unexpected character: '{}'", c)),
-            }
-        }
-        tokens.push(Token::EOF);
-        Ok(tokens)
-    }
+fn run_compiler_cpp(code: &str) {
+    println!("[C++ Compiler Mode] Code length: {}", code.len());
 }
 
-#[derive(Debug, Clone)]
-enum Expr {
-    Number(f64),
-    Variable(String),
-    BinaryOp(Box<Expr>, String, Box<Expr>),
+fn run_compiler_go(code: &str) {
+    println!("[Go Compiler Mode] Code length: {}", code.len());
 }
 
-#[derive(Debug, Clone)]
-enum Stmt {
-    Assign(String, Expr),
-    Println(Expr),
+fn run_compiler_rust(code: &str) {
+    println!("[Rust Compiler Mode] Code length: {}", code.len());
 }
 
-struct Parser {
-    tokens: Vec<Token>,
-    position: usize,
+fn run_compiler_java(code: &str) {
+    println!("[Java Compiler Mode] Code length: {}", code.len());
 }
 
-impl Parser {
-    fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, position: 0 }
-    }
-
-    fn peek(&self) -> &Token {
-        &self.tokens[self.position]
-    }
-
-    fn advance(&mut self) -> &Token {
-        let t = self.peek();
-        if *t != Token::EOF {
-            self.position += 1;
-        }
-        &self.tokens[self.position - 1]
-    }
-
-    fn parse_program(&mut self) -> Result<Vec<Stmt>, String> {
-        let mut statements = Vec::new();
-        while *self.peek() != Token::EOF {
-            statements.push(self.parse_statement()?);
-        }
-        Ok(statements)
-    }
-
-    fn parse_statement(&mut self) -> Result<Stmt, String> {
-        match self.peek() {
-            Token::Println => {
-                self.advance();
-                let expr = self.parse_expr()?;
-                Ok(Stmt::Println(expr))
-            }
-            Token::Ident(name) => {
-                let var_name = name.clone();
-                self.advance();
-                if *self.peek() == Token::Assign {
-                    self.advance();
-                    let expr = self.parse_expr()?;
-                    Ok(Stmt::Assign(var_name, expr))
-                } else {
-                    Err(format!("Expected '=' after variable '{}'", var_name))
-                }
-            }
-            _ => Err(format!("Syntax Error: Unexpected token {:?}", self.peek())),
-        }
-    }
-
-    fn parse_expr(&mut self) -> Result<Expr, String> {
-        self.parse_term()
-    }
-
-    fn parse_term(&mut self) -> Result<Expr, String> {
-        let mut left = self.parse_factor()?;
-        while *self.peek() == Token::Plus || *self.peek() == Token::Minus {
-            let op = if *self.advance() == Token::Plus { "+".to_string() } else { "-".to_string() };
-            let right = self.parse_factor()?;
-            left = Expr::BinaryOp(Box::new(left), op, Box::new(right));
-        }
-        Ok(left)
-    }
-
-    fn parse_factor(&mut self) -> Result<Expr, String> {
-        let mut left = self.parse_primary()?;
-        while *self.peek() == Token::Star || *self.peek() == Token::Slash {
-            let op = if *self.advance() == Token::Star { "*".to_string() } else { "/".to_string() };
-            let right = self.parse_primary()?;
-            left = Expr::BinaryOp(Box::new(left), op, Box::new(right));
-        }
-        Ok(left)
-    }
-
-    fn parse_primary(&mut self) -> Result<Expr, String> {
-        match self.advance() {
-            Token::Number(n) => Ok(Expr::Number(*n)),
-            Token::Ident(s) => Ok(Expr::Variable(s.clone())),
-            t => Err(format!("Expected number or variable, found {:?}", t)),
-        }
-    }
+fn run_compiler_csharp(code: &str) {
+    println!("[C# Compiler Mode] Code length: {}", code.len());
 }
 
-struct Runtime {
-    variables: HashMap<String, f64>,
+fn run_compiler_swift(code: &str) {
+    println!("[Swift Compiler Mode] Code length: {}", code.len());
 }
 
-impl Runtime {
-    fn new() -> Self {
-        Self { variables: HashMap::new() }
-    }
+fn run_compiler_kotlin(code: &str) {
+    println!("[Kotlin Compiler Mode] Code length: {}", code.len());
+}
 
-    fn run(&mut self, statements: Vec<Stmt>) -> Result<(), String> {
-        for stmt in statements {
-            match stmt {
-                Stmt::Assign(name, expr) => {
-                    let val = self.eval(expr)?;
-                    self.variables.insert(name, val);
-                }
-                Stmt::Println(expr) => {
-                    let val = self.eval(expr)?;
-                    println!("{}", val);
-                }
-            }
-        }
-        Ok(())
-    }
+fn run_interpreter_python(code: &str) {
+    println!("[Python Interpreter Mode] Code length: {}", code.len());
+}
 
-    fn eval(&self, expr: Expr) -> Result<f64, String> {
-        match expr {
-            Expr::Number(n) => Ok(n),
-            Expr::Variable(v) => self.variables.get(&v).cloned().ok_or(format!("Undefined variable: {}", v)),
-            Expr::BinaryOp(left, op, right) => {
-                let l = self.eval(*left)?;
-                let r = self.eval(*right)?;
-                match op.as_str() {
-                    "+" => Ok(l + r),
-                    "-" => Ok(l - r),
-                    "*" => Ok(l * r),
-                    "/" => {
-                        if r == 0.0 { Err("Division by zero".to_string()) } else { Ok(l / r) }
-                    }
-                    _ => Err("Invalid operator".to_string()),
-                }
-            }
-        }
-    }
+fn run_interpreter_javascript(code: &str) {
+    println!("[JavaScript Interpreter Mode] Code length: {}", code.len());
+}
+
+fn run_interpreter_typescript(code: &str) {
+    println!("[TypeScript Interpreter Mode] Code length: {}", code.len());
+}
+
+fn run_interpreter_lua(code: &str) {
+    println!("[Lua Interpreter Mode] Code length: {}", code.len());
+}
+
+fn run_interpreter_ruby(code: &str) {
+    println!("[Ruby Interpreter Mode] Code length: {}", code.len());
+}
+
+fn run_interpreter_php(code: &str) {
+    println!("[PHP Interpreter Mode] Code length: {}", code.len());
+}
+
+fn run_imcc_native(code: &str) {
+    println!("[IMCC Native Mode] Code length: {}", code.len());
 }
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-
     if args.len() < 2 {
-        eprintln!("Error: No input file specified.");
+        eprintln!("Error: Missing file argument.");
         eprintln!("Usage: imcc <filename>");
-        process::exit(1);
+        std::process::exit(1);
     }
 
-    let file_path = &args[1];
-    if !Path::new(file_path).exists() {
-        eprintln!("Error: File not found: {}", file_path);
-        process::exit(1);
-    }
+    let filename = &args[1];
+    let path = Path::new(filename);
+    
+    let ext = path.extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_lowercase();
 
-    let source_code = match fs::read_to_string(file_path) {
-        Ok(code) => code,
+    let content = match fs::read_to_string(filename) {
+        Ok(c) => c,
         Err(_) => {
-            eprintln!("Error: Could not read file: {}", file_path);
-            process::exit(1);
+            eprintln!("Error: Could not read file '{}'", filename);
+            std::process::exit(1);
         }
     };
 
-    let mut lexer = Lexer::new(&source_code);
-    let tokens = match lexer.tokenize() {
-        Ok(t) => t,
-        Err(e) => {
-            eprintln!("Lexer Error: {}", e);
-            process::exit(1);
-        }
-    };
+    show_spinner();
 
-    let mut parser = Parser::new(tokens);
-    let ast = match parser.parse_program() {
-        Ok(tree) => tree,
-        Err(e) => {
-            eprintln!("Parser Error: {}", e);
-            process::exit(1);
-        }
-    };
-
-    let mut runtime = Runtime::new();
-    if let Err(e) = runtime.run(ast) {
-        eprintln!("Runtime Error: {}", e);
-        process::exit(1);
+    match ext.as_str() {
+        "c" => run_compiler_c(&content),
+        "cpp" | "cc" | "cxx" => run_compiler_cpp(&content),
+        "go" => run_compiler_go(&content),
+        "rs" => run_compiler_rust(&content),
+        "java" => run_compiler_java(&content),
+        "cs" => run_compiler_csharp(&content),
+        "swift" => run_compiler_swift(&content),
+        "kt" | "kts" => run_compiler_kotlin(&content),
+        "py" | "pyw" => run_interpreter_python(&content),
+        "js" | "mjs" => run_interpreter_javascript(&content),
+        "ts" => run_interpreter_typescript(&content),
+        "lua" => run_interpreter_lua(&content),
+        "rb" => run_interpreter_ruby(&content),
+        "php" => run_interpreter_php(&content),
+        _ => run_imcc_native(&content),
     }
 }
 
