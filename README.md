@@ -1,15 +1,15 @@
-# imcc
-###  Just a Compiler
+imcc
+ Just a Compiler
 
 ---
 
 > [!NOTE]
-> ### Core Architecture Overview
+> Core Architecture Overview
 > This core system automatically intercepts file extensions to seamlessly route files into their optimized pipelines, ensuring zero conflict between binary execution and dynamic interpretation.
 
 ---
 
-## Technical Routing Matrix
+Technical Routing Matrix
 
 | Execution Model | Supported Language / Extensions |
 | :--- | :--- |
@@ -17,8 +17,7 @@
 | **Dynamic Interpretation** <br> *(JIT / VM Runtime)* | `py` / `pyw` / `js` / `mjs` / `ts` / `lua` / `rb` / `php` |
 
 ---
-
-## Installation & Deployment
+ Installation & Deployment
 
 > [!IMPORTANT]
 > Make sure your cargo environment is up to date before launching the installation script.
